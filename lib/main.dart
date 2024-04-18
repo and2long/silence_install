@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -60,6 +61,8 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final dio = Dio();
   bool _downloading = false;
+  String _progress = '0';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,6 +91,10 @@ class _MyHomePageState extends State<MyHomePage> {
             FilledButton(
                 onPressed: _downloading ? null : _download,
                 child: const Text('静默升级')),
+            Offstage(
+              offstage: !_downloading,
+              child: Text('下载进度：$_progress%'),
+            ),
           ],
         ),
       ),
@@ -99,18 +106,28 @@ class _MyHomePageState extends State<MyHomePage> {
       _downloading = true;
     });
     await dio.download(
-      'https://amplify-spo2appflutter-test-105855-deployment.s3.ap-northeast-1.amazonaws.com/2.apk',
-      '${(await getTemporaryDirectory()).path}/demo-v2.apk',
+      'https://amplify-spo2appflutter-test-105855-deployment.s3.ap-northeast-1.amazonaws.com/silence_install_v2.apk',
+      '${(await getTemporaryDirectory()).path}/silence_install_v2.apk',
       onReceiveProgress: (received, total) {
         if (total <= 0) return;
         String value = (received / total * 100).toStringAsFixed(0);
-        print('percentage: $value%');
+        if (value != _progress) {
+          setState(() {
+            _progress = value;
+          });
+        }
         if (received == total) {
           setState(() {
             _downloading = false;
           });
+          _install();
         }
       },
     );
+  }
+
+  void _install() {
+    const MethodChannel('parking_common_method')
+        .invokeMethod('silence_install');
   }
 }
