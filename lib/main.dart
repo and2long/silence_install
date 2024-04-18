@@ -1,5 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:path_provider/path_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -56,6 +58,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final dio = Dio();
+  bool _downloading = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -81,10 +85,32 @@ class _MyHomePageState extends State<MyHomePage> {
               }),
             ),
             const SizedBox(height: 20),
-            FilledButton(onPressed: () {}, child: const Text('静默升级')),
+            FilledButton(
+                onPressed: _downloading ? null : _download,
+                child: const Text('静默升级')),
           ],
         ),
       ),
+    );
+  }
+
+  void _download() async {
+    setState(() {
+      _downloading = true;
+    });
+    await dio.download(
+      'https://amplify-spo2appflutter-test-105855-deployment.s3.ap-northeast-1.amazonaws.com/2.apk',
+      '${(await getTemporaryDirectory()).path}/demo-v2.apk',
+      onReceiveProgress: (received, total) {
+        if (total <= 0) return;
+        String value = (received / total * 100).toStringAsFixed(0);
+        print('percentage: $value%');
+        if (received == total) {
+          setState(() {
+            _downloading = false;
+          });
+        }
+      },
     );
   }
 }
